@@ -1,5 +1,15 @@
 package com.pao.laboratory03.bonus;
 
+import com.pao.laboratory03.bonus.exception.DuplicateTaskException;
+import com.pao.laboratory03.bonus.exception.InvalidTransitionException;
+import com.pao.laboratory03.bonus.exception.TaskNotFoundException;
+import com.pao.laboratory03.bonus.model.Priority;
+import com.pao.laboratory03.bonus.model.Status;
+import com.pao.laboratory03.bonus.model.Task;
+import com.pao.laboratory03.bonus.service.TaskService;
+
+import java.util.*;
+
 /**
  * Exercițiul 5 (Bonus) — Sistem de gestiune task-uri cu audit log
  *
@@ -153,12 +163,65 @@ package com.pao.laboratory03.bonus;
  * === Excepții ===
  * TaskNotFoundException: Task-ul 'T999' nu a fost găsit
  */
+
 public class Main {
     public static void main(String[] args) {
         // TODO: implementează toți cei 10 pași de mai sus
         // Creează TOATE clasele necesare în acest pachet (bonus/)
         // Nu ai subpachete impuse — organizează cum consideri
+        TaskService service = TaskService.getInstance();
+
+        service.addTask("Fix login bug", Priority.CRITICAL);
+        service.addTask("Add dark mode", Priority.LOW);
+        service.addTask("Update docs", Priority.MEDIUM);
+        service.addTask("Fix memory leak", Priority.HIGH);
+        service.addTask("Refactor DB layer", Priority.HIGH);
+
+        service.assignTask("T001", "Ana");
+        service.assignTask("T003", "Mihai");
+        service.assignTask("T004", "Elena");
+
+        try {
+            service.changeStatus("T001", Status.IN_PROGRESS);
+
+            service.changeStatus("T001", Status.DONE);
+
+            service.changeStatus("T003", Status.IN_PROGRESS);
+
+            // aici crapa
+            service.changeStatus("T001", Status.TODO);
+        } catch (InvalidTransitionException e) {
+            System.out.println("InvalidTransitionException: " + e.getMessage());
+        }
+
+        for (Task t : service.getTasksByPriority(Priority.HIGH)) {
+            System.out.println(t);
+        }
+
+        Map<Status, Long> summary = service.getStatusSummary();
+        for (Map.Entry<Status, Long> entry : summary.entrySet()) {
+            System.out.println(entry.getKey() + ": " + entry.getValue());
+        }
+
+        for (Task t : service.getUnassignedTasks()) {
+            System.out.println(t.getId() + ": " + t.getTitle());
+        }
+
+        System.out.println("Total: " + service.getTotalUrgencyScore(5));
+
+        service.printAuditLog();
+
+        try {
+            service.addTaskWithCustomId("T001", "Duplicate Task", Priority.LOW);
+        } catch (DuplicateTaskException e) {
+            System.out.println("DuplicateTaskException: " + e.getMessage());
+        }
+
+        try {
+            service.assignTask("T999", "Ion");
+        } catch (TaskNotFoundException e) {
+            System.out.println("TaskNotFoundException: " + e.getMessage());
+        }
     }
 }
-
 

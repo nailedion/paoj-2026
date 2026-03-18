@@ -1,5 +1,9 @@
 package com.pao.laboratory03.exercise;
 
+import com.pao.laboratory03.exercise.model.Subject;
+import com.pao.laboratory03.exercise.service.StudentService;
+
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -70,6 +74,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         // TODO: obține instanța StudentService (Singleton)
+        StudentService service = StudentService.getInstance();
 
         System.out.println("=== Sistem Gestiune Studenți ===");
 
@@ -94,6 +99,7 @@ public class Main {
                         System.out.print("Vârsta: ");
                         int age = Integer.parseInt(scanner.nextLine().trim());
                         // TODO: apelează service.addStudent(name, age)
+                        service.addStudent(name, age);
                         System.out.println("Student adăugat cu succes!");
                         break;
 
@@ -105,20 +111,32 @@ public class Main {
                         System.out.print("Nota (1-10): ");
                         double grade = Double.parseDouble(scanner.nextLine().trim());
                         // TODO: convertește subjectStr în Subject cu valueOf()
+                        Subject subject = Subject.valueOf(subjectStr);
                         // TODO: apelează service.addGrade(studentName, subject, grade)
+                        service.addGrade(studentName, subject, grade);
                         System.out.println("Notă adăugată!");
                         break;
 
                     case "3":
                         // TODO: apelează service.printAllStudents()
+                        service.printAllStudents();
                         break;
 
                     case "4":
                         // TODO: apelează service.printTopStudents()
+                        service.printTopStudents();
                         break;
 
                     case "5":
                         // TODO: apelează service.getAveragePerSubject() și afișează
+                        Map<Subject, Double> averages = service.getAveragePerSubject();
+                        if (averages.isEmpty()) {
+                            System.out.println("Nu eu note");
+                        } else {
+                            for (Map.Entry<Subject, Double> entry : averages.entrySet()) {
+                                System.out.printf("%s: %.2f\n", entry.getKey().name(), entry.getValue());
+                            }
+                        }
                         break;
 
                     case "0":
