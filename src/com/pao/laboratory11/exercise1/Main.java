@@ -1,19 +1,13 @@
 package com.pao.laboratory11.exercise1;
 
-// Imports for command parsing and in-memory ranking/lookup structures.
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Predicate; // IMPORTANT: Importul pentru Predicate
 
 public class Main {
+
     private static final Set<String> HIGH_RISK_COUNTRIES =
             new HashSet<>(Arrays.asList("RU", "NG", "IR", "KP", "SY"));
 
@@ -27,20 +21,32 @@ public class Main {
         CHANNEL_SCORE.put("ATM", 0);
     }
 
+    public static final Predicate<Transaction> amountOverThreshold =
+            tx -> tx.getAmount() >= 1000.0;
+
+    public static final Predicate<Transaction> countryInRisk =
+            tx -> HIGH_RISK_COUNTRIES.contains(tx.getCountry());
+
+    public static final Predicate<Transaction> channelSuspicious =
+            tx -> Arrays.asList("WEB", "APP", "CRYPTO").contains(tx.getChannel());
+
+    public static final Predicate<Transaction> flaggedRule =
+            amountOverThreshold.or(countryInRisk).or(channelSuspicious);
+
     private static final Comparator<Transaction> BY_RISK_DESC_THEN_ID_ASC =
-            Comparator.comparingInt(Main::riskScore).reversed().thenComparingInt(t -> t.id);
+            Comparator.comparingInt(Main::riskScore)
+                    .reversed()
+                    .thenComparingInt(Transaction::getId);
 
     public static void main(String[] args) {
         try {
             run();
         } catch (IOException e) {
-            // Keep deterministic output for checker-based tests.
             System.out.println("ERR IO");
         }
     }
 
     private static void run() throws IOException {
-        // Read dataset and then execute Q commands over the in-memory model.
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         String first = readNonEmptyLine(br);
         if (first == null) {
@@ -69,7 +75,7 @@ public class Main {
                     tok[3].toUpperCase(),
                     tok[4].toUpperCase());
 
-            byId.put(tx.id, tx);
+            byId.put(tx.getId(), tx);
             all.add(tx);
         }
 
@@ -105,7 +111,6 @@ public class Main {
                     break;
 
                 case "LIST_FLAGGED":
-                    // Build flagged view and keep deterministic ordering for tests.
                     List<Transaction> flagged = new ArrayList<>();
                     for (Transaction t : all) {
                         if (isFlagged(t)) {
@@ -113,6 +118,7 @@ public class Main {
                         }
                     }
                     flagged.sort(BY_RISK_DESC_THEN_ID_ASC);
+
                     if (flagged.isEmpty()) {
                         System.out.println("NONE");
                     } else {
@@ -130,6 +136,7 @@ public class Main {
                     int k = Integer.parseInt(cmd[1]);
                     List<Transaction> ranked = new ArrayList<>(all);
                     ranked.sort(BY_RISK_DESC_THEN_ID_ASC);
+
                     int limit = Math.max(0, Math.min(k, ranked.size()));
                     for (int idx = 0; idx < limit; idx++) {
                         System.out.println(formatRiskLine(ranked.get(idx)));
@@ -153,27 +160,26 @@ public class Main {
         return null;
     }
 
-    private static int riskScore(Transaction tx) {
-        // Composite risk scoring used by CHECK, LIST_FLAGGED and TOP_RISK.
+    public static int riskScore(Transaction tx) {
         int score = 0;
 
-        if (tx.amount >= 5000.0) {
+        if (tx.getAmount() >= 5000.0) {
             score += 70;
-        } else if (tx.amount >= 1000.0) {
+        } else if (tx.getAmount() >= 1000.0) {
             score += 40;
-        } else if (tx.amount >= 500.0) {
+        } else if (tx.getAmount() >= 500.0) {
             score += 20;
         }
 
-        if (tx.amount <= 100.0) {
+        if (tx.getAmount() <= 100.0) {
             score += 5;
         }
 
-        if (HIGH_RISK_COUNTRIES.contains(tx.country)) {
+        if (HIGH_RISK_COUNTRIES.contains(tx.getCountry())) {
             score += 25;
         }
 
-        score += CHANNEL_SCORE.getOrDefault(tx.channel, 0);
+        score += CHANNEL_SCORE.getOrDefault(tx.getChannel(), 0);
         return score;
     }
 
@@ -187,22 +193,35 @@ public class Main {
 
     private static String formatRiskLine(Transaction tx) {
         int score = riskScore(tx);
-        return "[" + tx.id + "] " + verdict(score) + " score=" + score;
+        return "[" + tx.getId() + "] " + verdict(score) + " score=" + score;
     }
 
-    private static class Transaction {
+    public static class Transaction {
         private final int id;
         private final double amount;
         private final String date;
         private final String country;
         private final String channel;
+        private final String account;
 
-        private Transaction(int id, double amount, String date, String country, String channel) {
+        public Transaction(int id, double amount, String date, String country, String channel) {
+            this(id, amount, date, country, channel, null);
+        }
+
+        public Transaction(int id, double amount, String date, String country, String channel, String account) {
             this.id = id;
             this.amount = amount;
             this.date = date;
             this.country = country;
             this.channel = channel;
+            this.account = account;
         }
+
+        public int getId() { return id; }
+        public double getAmount() { return amount; }
+        public String getDate() { return date; }
+        public String getCountry() { return country; }
+        public String getChannel() { return channel; }
+        public String getAccount() { return account; }
     }
 }
